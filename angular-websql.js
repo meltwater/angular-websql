@@ -15,7 +15,7 @@ angular.module("angular-websql", []).factory("$webSql", [
        * @param version
        * @param desc
        * @param size
-       * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, selectAll: selectAll, simpleWhereClause: simpleWhereClause, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
+       * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, orderedSelect: orderedSelect, selectAll: selectAll, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
        */
       openDatabase: function (dbName, version, desc, size) {
         try {
@@ -24,24 +24,29 @@ angular.module("angular-websql", []).factory("$webSql", [
             throw "Browser does not support web sql";
           return {
             executeQuery: function (query, callback) {
+//              console.log('>>> QUERY: ' + JSON.stringify(query));
               db.transaction(function (tx) {
                 tx.executeSql(query, [], function (tx, results) {
-                  if (callback)
-                    callback(results);
+                  if (callback) {
+                    var cleanedResults = [];
+                    if (results && 'rows' in results && results.rows.length) {
+                      for (var i = 0; i < results.rows.length; i++) {
+                        cleanedResults.push(results.rows.item(i));
+                        callback(cleanedResults);
+                      }
+                    } else {
+                      callback(cleanedResults);
+                    }
+                  }
+                }, function (errorResp) {
+                  console.error(errorResp);
+                  if (callback) {
+                    callback([]);
+                  }
                 });
               });
               return this;
             },
-
-            /**
-             * CREATE INDEX
-             *
-             * @param tableName
-             * @param indexName
-             * @param columns
-             * @param unique
-             * @param callback
-             */
             index: function (tableName, indexName, columns, unique, callback) {
               var query = "CREATE {unique} INDEX `{indexName}` ON `{tableName}`({columns})";
               this.executeQuery(this.replace(query, {
@@ -100,22 +105,21 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), callback);
               return this;
             },
+            orderedSelect: function (b, c, orderBy, ascending, callback) {
+              var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY `{orderBy}` {sortOrder}; ";
+              var a = this.whereClause(c);
+              this.executeQuery(this.replace(d, {
+                "{tableName}": b,
+                "{where}": a,
+                "{orderBy}": orderBy,
+                "{sortOrder}": (!!ascending) ? 'ASC' : 'DESC'
+              }), callback);
+              return this;
+            },
             selectAll: function (a, callback) {
               this.executeQuery("SELECT * FROM `" + a + "`; ", callback);
               return this;
             },
-
-            /**
-             * Use as following:
-             * .simpleWhereClause("'userId' = 5 AND 'searchId' = 'xxx'")
-             *
-             * @param condition
-             * @param callback
-             */
-            simpleWhereClause: function(condition, callback) {
-              return condition;
-            },
-
             whereClause: function (conditions, callback) {
               var a = "";
               for (var entry in conditions) {
@@ -124,9 +128,13 @@ angular.module("angular-websql", []).factory("$webSql", [
                   ? (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
                   ? "`" + entry + "` " + conditions[entry]["value"]
                   : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "'"
-                  : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig)) ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " " : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " " : (typeof conditions[entry] === "string" && conditions[entry].match(/NULL/ig))
+                  : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
+                  ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " "
+                  : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " "
+                  : (typeof conditions[entry] === "string" && conditions[entry].match(/NULL/ig))
                   ? "`" + entry + "` " + conditions[entry]
                   : "`" + entry + "`='" + conditions[entry] + "'"
+                ;
               }
               return a;
             },
