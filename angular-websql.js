@@ -15,7 +15,7 @@ angular.module("angular-websql", []).factory("$webSql", [
        * @param version
        * @param desc
        * @param size
-       * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, selectAll: selectAll, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
+       * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, selectAll: selectAll, simpleWhereClause: simpleWhereClause, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
        */
       openDatabase: function (dbName, version, desc, size) {
         try {
@@ -104,10 +104,29 @@ angular.module("angular-websql", []).factory("$webSql", [
               this.executeQuery("SELECT * FROM `" + a + "`; ", callback);
               return this;
             },
-            whereClause: function (b, callback) {
+
+            /**
+             * Use as following:
+             * .simpleWhereClause("'userId' = 5 AND 'searchId' = 'xxx'")
+             *
+             * @param condition
+             * @param callback
+             */
+            simpleWhereClause: function(condition, callback) {
+              return condition;
+            },
+
+            whereClause: function (conditions, callback) {
               var a = "";
-              for (var c in b) {
-                a += (typeof b[c] === "object") ? (typeof b[c]["union"] === "undefined") ? (typeof b[c]["value"] === "string" && b[c]["value"].match(/NULL/ig)) ? "`" + c + "` " + b[c]["value"] : "`" + c + "` " + b[c]["operator"] + " '" + b[c]["value"] + "'" : (typeof b[c]["value"] === "string" && b[c]["value"].match(/NULL/ig)) ? "`" + c + "` " + b[c]["value"] + " " + b[c]["union"] + " " : "`" + c + "` " + b[c]["operator"] + " '" + b[c]["value"] + "' " + b[c]["union"] + " " : (typeof b[c] === "string" && b[c].match(/NULL/ig)) ? "`" + c + "` " + b[c] : "`" + c + "`='" + b[c] + "'"
+              for (var entry in conditions) {
+                a += (typeof conditions[entry] === "object")
+                  ? (typeof conditions[entry]["union"] === "undefined")
+                  ? (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
+                  ? "`" + entry + "` " + conditions[entry]["value"]
+                  : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "'"
+                  : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig)) ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " " : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " " : (typeof conditions[entry] === "string" && conditions[entry].match(/NULL/ig))
+                  ? "`" + entry + "` " + conditions[entry]
+                  : "`" + entry + "`='" + conditions[entry] + "'"
               }
               return a;
             },
