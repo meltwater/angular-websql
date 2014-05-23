@@ -45,7 +45,7 @@ angular.module("angular-websql", []).factory("$webSql", [
             index: function (tableName, indexName, columns, unique, callback) {
               var query = "CREATE {unique} INDEX `{indexName}` ON `{tableName}`({columns})";
               this.executeQuery(this.replace(query, {
-                "{unique}": (!!unique) ? 'UNIQUE' : ''
+                "{unique}": (!!unique) ? 'UNIQUE' : '',
                 "{indexName}": indexName,
                 "{tableName}": tableName,
                 "{columns}": columns.join(',')
@@ -157,7 +157,7 @@ angular.module("angular-websql", []).factory("$webSql", [
             dropTable: function (a, callback) {
               this.executeQuery("DROP TABLE IF EXISTS `" + a + "`; ", callback);
               return this;
-            },
+            }
           };
         } catch (err) {
           console.error(err);
