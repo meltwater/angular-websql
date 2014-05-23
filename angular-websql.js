@@ -39,11 +39,13 @@ angular.module("angular-websql", []).factory("$webSql", [
              * @param tableName
              * @param indexName
              * @param columns
+             * @param unique
              * @param callback
              */
-            index: function (tableName, indexName, columns, callback) {
-              var query = "CREATE INDEX `{indexName}` ON `{tableName}`({columns})";
+            index: function (tableName, indexName, columns, unique, callback) {
+              var query = "CREATE {unique} INDEX `{indexName}` ON `{tableName}`({columns})";
               this.executeQuery(this.replace(query, {
+                "{unique}": (!!unique) ? 'UNIQUE' : ''
                 "{indexName}": indexName,
                 "{tableName}": tableName,
                 "{columns}": columns.join(',')
