@@ -24,7 +24,7 @@ angular.module("angular-websql", []).factory("$webSql", [
             throw "Browser does not support web sql";
           return {
             executeQuery: function (query, callback) {
-//              console.log('>>> QUERY: ' + JSON.stringify(query));
+              console.log('[QUERY] ' + JSON.stringify(query));
               db.transaction(function (tx) {
                 tx.executeSql(query, [], function (tx, results) {
                   if (callback) {
@@ -40,6 +40,7 @@ angular.module("angular-websql", []).factory("$webSql", [
                   }
                 }, function (errorResp) {
                   console.error(errorResp);
+
                   if (callback) {
                     callback([]);
                   }
@@ -48,7 +49,7 @@ angular.module("angular-websql", []).factory("$webSql", [
               return this;
             },
             index: function (tableName, indexName, columns, unique, callback) {
-              var query = "CREATE {unique} INDEX `{indexName}` ON `{tableName}`({columns})";
+              var query = "CREATE {unique} INDEX IF NOT EXISTS `{indexName}` ON `{tableName}`({columns})";
               this.executeQuery(this.replace(query, {
                 "{unique}": (!!unique) ? 'UNIQUE' : '',
                 "{indexName}": indexName,
@@ -106,13 +107,25 @@ angular.module("angular-websql", []).factory("$webSql", [
               return this;
             },
             orderedSelect: function (b, c, orderBy, ascending, callback) {
-              var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY `{orderBy}` {sortOrder}; ";
+              var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder}; ";
               var a = this.whereClause(c);
               this.executeQuery(this.replace(d, {
                 "{tableName}": b,
                 "{where}": a,
                 "{orderBy}": orderBy,
                 "{sortOrder}": (!!ascending) ? 'ASC' : 'DESC'
+              }), callback);
+              return this;
+            },
+            limitedOrderedSelect: function (b, c, orderBy, ascending, limit, callback) {
+              var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder} LIMIT {limit}; ";
+              var a = this.whereClause(c);
+              this.executeQuery(this.replace(d, {
+                "{tableName}": b,
+                "{where}": a,
+                "{orderBy}": orderBy,
+                "{sortOrder}": (!!ascending) ? 'ASC' : 'DESC',
+                "{limit}": limit
               }), callback);
               return this;
             },
@@ -127,7 +140,7 @@ angular.module("angular-websql", []).factory("$webSql", [
                   ? (typeof conditions[entry]["union"] === "undefined")
                   ? (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
                   ? "`" + entry + "` " + conditions[entry]["value"]
-                  : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "'"
+                  : "`" + entry + "` " + conditions[entry]["operator"] + (conditions[entry]["operator"] == 'IN' ? " " + conditions[entry]["value"] : " '" + conditions[entry]["value"] + "'")
                   : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
                   ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " "
                   : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " "
