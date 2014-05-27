@@ -23,10 +23,10 @@ angular.module("angular-websql", []).factory("$webSql", [
           if (typeof(openDatabase) == "undefined")
             throw "Browser does not support web sql";
           return {
-            executeQuery: function (query, callback) {
+            executeQuery: function (query, bindings, callback) {
               console.log('[QUERY] ' + JSON.stringify(query));
               db.transaction(function (tx) {
-                tx.executeSql(query, [], function (tx, results) {
+                tx.executeSql(query, bindings, function (tx, results) {
                   if (callback) {
                     var cleanedResults = [];
                     if (results && 'rows' in results && results.rows.length) {
@@ -55,25 +55,28 @@ angular.module("angular-websql", []).factory("$webSql", [
                 "{indexName}": indexName,
                 "{tableName}": tableName,
                 "{columns}": columns.join(',')
-              }), callback);
+              }), [], callback);
               return this;
             },
             insert: function (tableName, objToInsert, callback) {
               var
                 query = "INSERT INTO `{tableName}` ({columns}) VALUES({values}); ",
-                columns = "",
-                values = "";
-              for (var entry in objToInsert) {
-                columns += (Object.keys(objToInsert)[Object.keys(objToInsert).length - 1] == entry) ? "`" + entry + "`" : "`" + entry + "`, ";
-                values += (Object.keys(objToInsert)[Object.keys(objToInsert).length - 1] == entry) ? "'" + objToInsert[entry] + "'" : "'" + objToInsert[entry] + "', "
-              }
+                columns = Object.keys(objToInsert).join(','),
+                values = Object.keys(objToInsert).map(function () {
+                  return '?';
+                }).join(','),
+                bindings = Object.keys(objToInsert).map(function (entry) {
+                  return objToInsert[entry];
+                });
+
               this.executeQuery(this.replace(query, {
                 "{tableName}": tableName,
                 "{columns}": columns,
                 "{values}": values
-              }), callback);
+              }), bindings, callback);
               return this;
             },
+            // TODO: Implement parameter bindings!!! (the frontend dev: "the question mark stuff")
             update: function (b, g, c, callback) {
               var f = "UPDATE `{tableName}` SET {update} WHERE {where}; ";
               var e = "";
@@ -85,7 +88,7 @@ angular.module("angular-websql", []).factory("$webSql", [
                 "{tableName}": b,
                 "{update}": e,
                 "{where}": a
-              }), callback);
+              }), [], callback);
               return this;
             },
             del: function (b, c, callback) {
@@ -94,7 +97,7 @@ angular.module("angular-websql", []).factory("$webSql", [
               this.executeQuery(this.replace(d, {
                 "{tableName}": b,
                 "{where}": a
-              }), callback);
+              }), [], callback);
               return this;
             },
             select: function (b, c, callback) {
@@ -103,7 +106,7 @@ angular.module("angular-websql", []).factory("$webSql", [
               this.executeQuery(this.replace(d, {
                 "{tableName}": b,
                 "{where}": a
-              }), callback);
+              }), [], callback);
               return this;
             },
             orderedSelect: function (b, c, orderBy, ascending, callback) {
@@ -114,7 +117,7 @@ angular.module("angular-websql", []).factory("$webSql", [
                 "{where}": a,
                 "{orderBy}": orderBy,
                 "{sortOrder}": (!!ascending) ? 'ASC' : 'DESC'
-              }), callback);
+              }), [], callback);
               return this;
             },
             limitedOrderedSelect: function (b, c, orderBy, ascending, limit, callback) {
@@ -126,11 +129,11 @@ angular.module("angular-websql", []).factory("$webSql", [
                 "{orderBy}": orderBy,
                 "{sortOrder}": (!!ascending) ? 'ASC' : 'DESC',
                 "{limit}": limit
-              }), callback);
+              }), [], callback);
               return this;
             },
             selectAll: function (a, callback) {
-              this.executeQuery("SELECT * FROM `" + a + "`; ", callback);
+              this.executeQuery("SELECT * FROM `" + a + "`; ", [], callback);
               return this;
             },
             whereClause: function (conditions, callback) {
@@ -191,11 +194,11 @@ angular.module("angular-websql", []).factory("$webSql", [
               for (var f in d) {
                 b = b.replace(new RegExp("{" + f + "}", "ig"), d[f])
               }
-              this.executeQuery(b, callback);
+              this.executeQuery(b, [], callback);
               return this;
             },
             dropTable: function (a, callback) {
-              this.executeQuery("DROP TABLE IF EXISTS `" + a + "`; ", callback);
+              this.executeQuery("DROP TABLE IF EXISTS `" + a + "`; ", [], callback);
               return this;
             }
           };
