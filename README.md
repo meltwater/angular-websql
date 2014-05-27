@@ -155,7 +155,7 @@ $scope.db.orderedSelect("user", {
 ```sql 
 SELECT * FROM user WHERE age >= 18 ORDER BY age ASC
 ```
-### Limit Ordered Select
+### Limited Ordered Select
 #### `limitedOrderedSelect(string tableName, object where, orderByField, ascending, limit, [callback])`
 ```javascript
 $scope.db.limitedOrderedSelect("user", {
