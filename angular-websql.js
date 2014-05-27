@@ -18,11 +18,12 @@ angular.module("angular-websql", []).factory("$webSql", [
        * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, orderedSelect: orderedSelect, limitedOrderedSelect: limitedOrderedSelect, selectAll: selectAll, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
        */
       openDatabase: function (dbName, version, desc, size) {
-        try {
-          if (typeof(openDatabase) == "undefined") {
-            throw "Browser does not support web sql";
-          }
+        if (typeof(openDatabase) == "undefined") {
+          throw "Browser does not support web sql";
+        }
 
+        try {
+          /* Use either the window.sqlitePlugin (Cordova SQLite plugin) or WebSQL */
           var db = (window && 'sqlitePlugin' in window)
             ? window.sqlitePlugin.openDatabase({'name': dbName})
             : window.openDatabase(dbName, version, desc, size);
@@ -30,6 +31,7 @@ angular.module("angular-websql", []).factory("$webSql", [
           return {
 
             /**
+             * Executes the SQL query, adds - if provided - the parameter bindings
              *
              * @param query
              * @param bindings
@@ -37,7 +39,8 @@ angular.module("angular-websql", []).factory("$webSql", [
              * @returns {*}
              */
             executeQuery: function (query, bindings, callback) {
-              console.log('[QUERY] ' + JSON.stringify(query));
+//              console.log('[QUERY] ' + JSON.stringify(query) + ' -- BINDINGS: ' + JSON.stringify(bindings));
+
               db.transaction(function (tx) {
                 tx.executeSql(query, bindings, function (tx, results) {
                   if (callback) {
@@ -63,6 +66,7 @@ angular.module("angular-websql", []).factory("$webSql", [
             },
 
             /**
+             * CREATE [UNIQUE] INDEX IF NOT EXISTS <index> ON <table>(<columns>);
              *
              * @param tableName
              * @param indexName
@@ -83,6 +87,7 @@ angular.module("angular-websql", []).factory("$webSql", [
             },
 
             /**
+             * INSERT INTO <table> (<columns>) VALUES(<values>);
              *
              * @param tableName
              * @param objToInsert
@@ -100,16 +105,6 @@ angular.module("angular-websql", []).factory("$webSql", [
                   return objToInsert[entry];
                 });
 
-//              console.log('-----------[ insert ]---------------');
-//              console.log(columns);
-//              console.log(columns.split(',').length);
-//              console.log(values);
-//              console.log(values.split(',').length);
-//              console.log(bindings);
-//              console.log(bindings.length);
-//              console.log('--------------------------');
-
-
               this.executeQuery(this.replace(query, {
                 "{tableName}": tableName,
                 "{columns}": columns,
@@ -120,77 +115,83 @@ angular.module("angular-websql", []).factory("$webSql", [
 
             // TODO: Implement parameter bindings!!! (the frontend dev: "the question mark stuff")
             /**
+             * UPDATE <table> SET <value> WHERE <cond>;
              *
-             * @param b
-             * @param g
-             * @param c
+             * @param tableName
+             * @param valuesToUpdate
+             * @param condition
              * @param callback
              * @returns {*}
              */
-            update: function (b, g, c, callback) {
-              var f = "UPDATE `{tableName}` SET {update} WHERE {where}; ";
-              var e = "";
-              for (var d in g) {
-                e += "`" + d + "`='" + g[d] + "'"
+            update: function (tableName, valuesToUpdate, condition, callback) {
+              var query = "UPDATE `{tableName}` SET {update} WHERE {where}; ";
+              var updateValue = "";
+              for (var entry in valuesToUpdate) {
+                if (valuesToUpdate.hasOwnProperty(entry)) {
+                  updateValue += "`" + entry + "`='" + valuesToUpdate[entry] + "'";
+                }
               }
-              var a = this.whereClause(c);
-              this.executeQuery(this.replace(f, {
-                "{tableName}": b,
-                "{update}": e,
-                "{where}": a
+              var whereCondition = this.whereClause(condition);
+              this.executeQuery(this.replace(query, {
+                "{tableName}": tableName,
+                "{update}": updateValue,
+                "{where}": whereCondition
               }), [], callback);
               return this;
             },
 
             /**
+             * DELETE FROM <table> WHERE <cond>;
              *
-             * @param b
-             * @param c
+             * @param tableName
+             * @param condition
              * @param callback
              * @returns {*}
              */
-            del: function (b, c, callback) {
-              var d = "DELETE FROM `{tableName}` WHERE {where}; ";
-              var a = this.whereClause(c);
-              this.executeQuery(this.replace(d, {
-                "{tableName}": b,
-                "{where}": a
+            del: function (tableName, condition, callback) {
+              var query = "DELETE FROM `{tableName}` WHERE {where}; ";
+              var whereCondition = this.whereClause(condition);
+              this.executeQuery(this.replace(query, {
+                "{tableName}": tableName,
+                "{where}": whereCondition
               }), [], callback);
               return this;
             },
 
             /**
+             * SELECT <columns> FROM <table> WHERE <cond>;
              *
-             * @param b
-             * @param c
+             * @param tableName
+             * @param condition
              * @param callback
              * @returns {*}
              */
-            select: function (b, c, callback) {
-              var d = "SELECT * FROM `{tableName}` WHERE {where}; ";
-              var a = this.whereClause(c);
-              this.executeQuery(this.replace(d, {
-                "{tableName}": b,
-                "{where}": a
+            select: function (tableName, condition, callback) {
+              var query = "SELECT * FROM `{tableName}` WHERE {where}; ";
+              var whereCondition = this.whereClause(condition);
+              this.executeQuery(this.replace(query, {
+                "{tableName}": tableName,
+                "{where}": whereCondition
               }), [], callback);
               return this;
             },
 
             /**
+             * SELECT <columns> FROM <table> WHERE <cond> ORDER BY <column>;
              *
-             * @param b
-             * @param c
+             * @param tableName
+             * @param condition
              * @param orderBy
              * @param ascending
              * @param callback
              * @returns {*}
              */
-            orderedSelect: function (b, c, orderBy, ascending, callback) {
-              var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder}; ";
-              var a = this.whereClause(c);
-              this.executeQuery(this.replace(d, {
-                "{tableName}": b,
-                "{where}": a,
+            orderedSelect: function (tableName, condition, orderBy, ascending, callback) {
+              var query = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder}; ";
+              var whereCondition = this.whereClause(condition);
+              this.executeQuery(this.replace(query, {
+                "{tableName}": tableName,
+                "{where}": whereCondition,
                 "{orderBy}": orderBy,
                 "{sortOrder}": (!!ascending) ? 'ASC' : 'DESC'
               }), [], callback);
@@ -198,21 +199,22 @@ angular.module("angular-websql", []).factory("$webSql", [
             },
 
             /**
+             * SELECT <columns> FROM <table> WHERE <cond> ORDER BY <column> LIMIT <row_count>;
              *
-             * @param b
-             * @param c
+             * @param tableName
+             * @param condition
              * @param orderBy
              * @param ascending
              * @param limit
              * @param callback
              * @returns {*}
              */
-            limitedOrderedSelect: function (b, c, orderBy, ascending, limit, callback) {
-              var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder} LIMIT {limit}; ";
-              var a = this.whereClause(c);
-              this.executeQuery(this.replace(d, {
-                "{tableName}": b,
-                "{where}": a,
+            limitedOrderedSelect: function (tableName, condition, orderBy, ascending, limit, callback) {
+              var query = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder} LIMIT {limit}; ";
+              var whereCondition = this.whereClause(condition);
+              this.executeQuery(this.replace(query, {
+                "{tableName}": tableName,
+                "{where}": whereCondition,
                 "{orderBy}": orderBy,
                 "{sortOrder}": (!!ascending) ? 'ASC' : 'DESC',
                 "{limit}": limit
@@ -221,108 +223,148 @@ angular.module("angular-websql", []).factory("$webSql", [
             },
 
             /**
-             *
-             * @param a
+             * SELECT * FROM <table>;
+             * @param tableName
              * @param callback
              * @returns {*}
              */
-            selectAll: function (a, callback) {
-              this.executeQuery("SELECT * FROM `" + a + "`; ", [], callback);
+            selectAll: function (tableName, callback) {
+              this.executeQuery("SELECT * FROM `" + tableName + "`; ", [], callback);
               return this;
             },
 
             /**
+             * Constructs the WHERE-clause. Can concatenate multiple where clauses, e.g.:
+             *
+             * db.orderedSelect(DOCUMENT_TABLE, {
+             *   'userId': {
+             *     'operator': '=',
+             *     'value': UserService.currentUserId(),
+             *     'union': 'AND'
+             *   },
+             *   'searchId': {
+             *     'operator': '=',
+             *     'value': searchId,
+             *     'union': 'AND'
+             *   },
+             *   'id': {
+             *     'operator': '>',
+             *     'value': lastAutoIncrement
+             *   }
+             * }, 'createdAt', false, function (dbResults) {
+             *  (dbResults && dbResults !== null) ? deferred.resolve(dbResults) : deferred.reject(dbResults);
+             * });
+             *
+             * This will create following query:
+             * > SELECT * FROM <DOCUMENT_TABLE>
+             *            WHERE 'userId' = <UserService.currentUserId()>
+             *            AND 'searchId' = <searchId>
+             *            AND 'id' > <lastAutoIncrement>
+             *            ORDER BY 'createdAt' DESC;
+             *
              *
              * @param conditions
-             * @param callback
              * @returns {string}
              */
-            whereClause: function (conditions, callback) {
-              var a = "";
+            whereClause: function (conditions) {
+              var compiledWhereClause = "";
               for (var entry in conditions) {
-                a += (typeof conditions[entry] === "object")
-                  ? (typeof conditions[entry]["union"] === "undefined")
-                  ? (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
-                  ? "`" + entry + "` " + conditions[entry]["value"]
-                  : "`" + entry + "` " + conditions[entry]["operator"] + (conditions[entry]["operator"] == 'IN' ? " " + conditions[entry]["value"] : " '" + conditions[entry]["value"] + "'")
-                  : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
-                  ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " "
-                  : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " "
-                  : (typeof conditions[entry] === "string" && conditions[entry].match(/NULL/ig))
-                  ? "`" + entry + "` " + conditions[entry]
-                  : "`" + entry + "`='" + conditions[entry] + "'"
-                ;
+                if (conditions.hasOwnProperty(entry)) {
+                  // TODO: Clean up this MONSTER!!!!!!!
+                  compiledWhereClause += (typeof conditions[entry] === "object")
+                    ? (typeof conditions[entry]["union"] === "undefined")
+                    ? (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
+                    ? "`" + entry + "` " + conditions[entry]["value"]
+                    : "`" + entry + "` " + conditions[entry]["operator"] + (conditions[entry]["operator"] == 'IN' ? " " + conditions[entry]["value"] : " '" + conditions[entry]["value"] + "'")
+                    : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
+                    ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " "
+                    : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " "
+                    : (typeof conditions[entry] === "string" && conditions[entry].match(/NULL/ig))
+                    ? "`" + entry + "` " + conditions[entry]
+                    : "`" + entry + "`='" + conditions[entry] + "'"
+                  ;
+                }
               }
-              return a;
+              return compiledWhereClause;
             },
 
             /**
+             * Replaces a given string with another (used for replacing our place holders with actual values)
              *
-             * @param a
-             * @param c
-             * @param callback
+             * @param templateString
+             * @param valuesToReplace
              * @returns {*}
              */
-            replace: function (a, c, callback) {
-              for (var b in c) {
-                a = a.replace(new RegExp(b, "ig"), c[b])
+            replace: function (templateString, valuesToReplace) {
+              for (var entry in valuesToReplace) {
+                if (valuesToReplace.hasOwnProperty(entry)) {
+                  templateString = templateString.replace(new RegExp(entry, "ig"), valuesToReplace[entry])
+                }
               }
-              return a;
+              return templateString;
             },
 
             /**
+             * CREATE TABLE IF NOT EXISTS <table>(<fields>);
              *
-             * @param j
-             * @param g
+             * @param tableName
+             * @param fields
              * @param callback
              * @returns {*}
              */
-            createTable: function (j, g, callback) {
-              var b = "CREATE TABLE IF NOT EXISTS `{tableName}` ({fields}); ";
+            createTable: function (tableName, fields, callback) {
+              var query = "CREATE TABLE IF NOT EXISTS `{tableName}` ({fields}); ";
               var c = [];
-              var a = "";
-              for (var e in g) {
-                var l = "{type} {null}";
-                a += "`" + e + "` ";
-                for (var k in g[e]) {
-                  l = l.replace(new RegExp("{" + k + "}", "ig"), g[e][k])
-                }
-                a += l;
-                if (typeof g[e]["default"] !== "undefined") {
-                  a += " DEFAULT " + g[e]["default"]
-                }
-                if (typeof g[e]["primary"] !== "undefined") {
-                  a += " PRIMARY KEY"
-                }
-                if (typeof g[e]["auto_increment"] !== "undefined") {
-                  a += " AUTOINCREMENT"
-                }
-                if (Object.keys(g)[Object.keys(g).length - 1] != e) {
-                  a += ","
-                }
-                if (typeof g[e]["primary"] !== "undefined" && g[e]["primary"]) {
-                  c.push(e)
+              var columns = "";
+              for (var field in fields) {
+                if (fields.hasOwnProperty(field)) {
+                  var l = "{type} {null}";
+                  columns += "`" + field + "` ";
+                  for (var k in fields[field]) {
+                    if (fields[field].hasOwnProperty(k)) {
+                      l = l.replace(new RegExp("{" + k + "}", "ig"), fields[field][k])
+                    }
+                  }
+                  columns += l;
+                  if (typeof fields[field]["default"] !== "undefined") {
+                    columns += " DEFAULT " + fields[field]["default"]
+                  }
+                  if (typeof fields[field]["primary"] !== "undefined") {
+                    columns += " PRIMARY KEY"
+                  }
+                  if (typeof fields[field]["auto_increment"] !== "undefined") {
+                    columns += " AUTOINCREMENT"
+                  }
+                  if (Object.keys(fields)[Object.keys(fields).length - 1] != field) {
+                    columns += ","
+                  }
+                  if (typeof fields[field]["primary"] !== "undefined" && fields[field]["primary"]) {
+                    c.push(field)
+                  }
                 }
               }
-              var d = {
-                tableName: j,
-                fields: a
+              var valuesToReplace = {
+                tableName: tableName,
+                fields: columns
               };
-              for (var f in d) {
-                b = b.replace(new RegExp("{" + f + "}", "ig"), d[f])
+              for (var entry in valuesToReplace) {
+                if (valuesToReplace.hasOwnProperty(entry)) {
+                  query = query.replace(new RegExp("{" + entry + "}", "ig"), valuesToReplace[entry])
+                }
               }
-              this.executeQuery(b, [], callback);
+              this.executeQuery(query, [], callback);
               return this;
             },
 
             /**
+             * DROP TABLE IF EXISTS <table>;
              *
-             * @param a
+             * @param tableName
              * @param callback
              * @returns {*}
              */
-            dropTable: function (a, callback) {
-              this.executeQuery("DROP TABLE IF EXISTS `" + a + "`; ", [], callback);
+            dropTable: function (tableName, callback) {
+              this.executeQuery("DROP TABLE IF EXISTS `" + tableName + "`; ", [], callback);
               return this;
             }
           };
