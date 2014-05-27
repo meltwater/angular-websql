@@ -36,6 +36,8 @@ These methods are:
 - [update()](#update)  
 - [delete()](#delete)  
 - [select()](#select)  
+- [orderedSelect()](#orderedSelect)  
+- [limitedOrderedSelect()](#limitedOrderedSelect)  
 - [selectAll()](#select-all)  
 
 ## Database Methods
@@ -133,6 +135,44 @@ $scope.db.select("user", {
 ```
 ```sql 
 SELECT * FROM user WHERE age IS NULL AND username IS NOT NULL
+```
+### Ordered Select
+#### `orderedSelect(string tableName, object where, orderByField, ascending, [callback])`
+```javascript
+$scope.db.orderedSelect("user", {
+  "age": {
+    "operator": '>=',
+    "value": '18'
+  }  
+}, 'age', true, function(results) {
+  $scope.users = [];
+  for(i=0; i < results.rows.length; i++){
+    $scope.users.push(results.rows.item(i));
+  }
+  $scope.$apply();
+})
+```
+```sql 
+SELECT * FROM user WHERE age >= 18 ORDER BY age ASC
+```
+### Limit Ordered Select
+#### `limitedOrderedSelect(string tableName, object where, orderByField, ascending, limit, [callback])`
+```javascript
+$scope.db.limitedOrderedSelect("user", {
+  "age": {
+    "operator": '>=',
+    "value": '18'
+  }  
+}, 'age', true, 5, function(results) {
+  $scope.users = [];
+  for(i=0; i < results.rows.length; i++){
+    $scope.users.push(results.rows.item(i));
+  }
+  $scope.$apply();
+})
+```
+```sql 
+SELECT * FROM user WHERE age >= 18 ORDER BY age ASC LIMIT 5
 ```
 ### Select All
 #### `selectAll(string tableName, [callback])`
