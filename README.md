@@ -36,8 +36,8 @@ These methods are:
 - [update()](#update)  
 - [delete()](#delete)  
 - [select()](#select)  
-- [orderedSelect()](#orderedSelect)  
-- [limitedOrderedSelect()](#limitedOrderedSelect)  
+- [orderedSelect()](#ordered-select)  
+- [limitedOrderedSelect()](#limited-ordered-select)  
 - [selectAll()](#select-all)  
 
 ## Database Methods
