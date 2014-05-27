@@ -15,14 +15,27 @@ angular.module("angular-websql", []).factory("$webSql", [
        * @param version
        * @param desc
        * @param size
-       * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, orderedSelect: orderedSelect, selectAll: selectAll, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
+       * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, orderedSelect: orderedSelect, limitedOrderedSelect: limitedOrderedSelect, selectAll: selectAll, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
        */
       openDatabase: function (dbName, version, desc, size) {
         try {
-          var db = openDatabase(dbName, version, desc, size);
-          if (typeof(openDatabase) == "undefined")
+          if (typeof(openDatabase) == "undefined") {
             throw "Browser does not support web sql";
+          }
+
+          var db = (window && 'sqlitePlugin' in window)
+            ? window.sqlitePlugin.openDatabase({'name': dbName})
+            : window.openDatabase(dbName, version, desc, size);
+
           return {
+
+            /**
+             *
+             * @param query
+             * @param bindings
+             * @param callback
+             * @returns {*}
+             */
             executeQuery: function (query, bindings, callback) {
               console.log('[QUERY] ' + JSON.stringify(query));
               db.transaction(function (tx) {
@@ -48,6 +61,16 @@ angular.module("angular-websql", []).factory("$webSql", [
               });
               return this;
             },
+
+            /**
+             *
+             * @param tableName
+             * @param indexName
+             * @param columns
+             * @param unique
+             * @param callback
+             * @returns {*}
+             */
             index: function (tableName, indexName, columns, unique, callback) {
               var query = "CREATE {unique} INDEX IF NOT EXISTS `{indexName}` ON `{tableName}`({columns})";
               this.executeQuery(this.replace(query, {
@@ -58,6 +81,14 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param tableName
+             * @param objToInsert
+             * @param callback
+             * @returns {*}
+             */
             insert: function (tableName, objToInsert, callback) {
               var
                 query = "INSERT INTO `{tableName}` ({columns}) VALUES({values}); ",
@@ -69,6 +100,16 @@ angular.module("angular-websql", []).factory("$webSql", [
                   return objToInsert[entry];
                 });
 
+//              console.log('-----------[ insert ]---------------');
+//              console.log(columns);
+//              console.log(columns.split(',').length);
+//              console.log(values);
+//              console.log(values.split(',').length);
+//              console.log(bindings);
+//              console.log(bindings.length);
+//              console.log('--------------------------');
+
+
               this.executeQuery(this.replace(query, {
                 "{tableName}": tableName,
                 "{columns}": columns,
@@ -76,7 +117,16 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), bindings, callback);
               return this;
             },
+
             // TODO: Implement parameter bindings!!! (the frontend dev: "the question mark stuff")
+            /**
+             *
+             * @param b
+             * @param g
+             * @param c
+             * @param callback
+             * @returns {*}
+             */
             update: function (b, g, c, callback) {
               var f = "UPDATE `{tableName}` SET {update} WHERE {where}; ";
               var e = "";
@@ -91,6 +141,14 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param b
+             * @param c
+             * @param callback
+             * @returns {*}
+             */
             del: function (b, c, callback) {
               var d = "DELETE FROM `{tableName}` WHERE {where}; ";
               var a = this.whereClause(c);
@@ -100,6 +158,14 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param b
+             * @param c
+             * @param callback
+             * @returns {*}
+             */
             select: function (b, c, callback) {
               var d = "SELECT * FROM `{tableName}` WHERE {where}; ";
               var a = this.whereClause(c);
@@ -109,6 +175,16 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param b
+             * @param c
+             * @param orderBy
+             * @param ascending
+             * @param callback
+             * @returns {*}
+             */
             orderedSelect: function (b, c, orderBy, ascending, callback) {
               var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder}; ";
               var a = this.whereClause(c);
@@ -120,6 +196,17 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param b
+             * @param c
+             * @param orderBy
+             * @param ascending
+             * @param limit
+             * @param callback
+             * @returns {*}
+             */
             limitedOrderedSelect: function (b, c, orderBy, ascending, limit, callback) {
               var d = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder} LIMIT {limit}; ";
               var a = this.whereClause(c);
@@ -132,10 +219,24 @@ angular.module("angular-websql", []).factory("$webSql", [
               }), [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param a
+             * @param callback
+             * @returns {*}
+             */
             selectAll: function (a, callback) {
               this.executeQuery("SELECT * FROM `" + a + "`; ", [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param conditions
+             * @param callback
+             * @returns {string}
+             */
             whereClause: function (conditions, callback) {
               var a = "";
               for (var entry in conditions) {
@@ -154,12 +255,28 @@ angular.module("angular-websql", []).factory("$webSql", [
               }
               return a;
             },
+
+            /**
+             *
+             * @param a
+             * @param c
+             * @param callback
+             * @returns {*}
+             */
             replace: function (a, c, callback) {
               for (var b in c) {
                 a = a.replace(new RegExp(b, "ig"), c[b])
               }
               return a;
             },
+
+            /**
+             *
+             * @param j
+             * @param g
+             * @param callback
+             * @returns {*}
+             */
             createTable: function (j, g, callback) {
               var b = "CREATE TABLE IF NOT EXISTS `{tableName}` ({fields}); ";
               var c = [];
@@ -197,6 +314,13 @@ angular.module("angular-websql", []).factory("$webSql", [
               this.executeQuery(b, [], callback);
               return this;
             },
+
+            /**
+             *
+             * @param a
+             * @param callback
+             * @returns {*}
+             */
             dropTable: function (a, callback) {
               this.executeQuery("DROP TABLE IF EXISTS `" + a + "`; ", [], callback);
               return this;
