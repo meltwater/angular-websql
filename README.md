@@ -1,12 +1,18 @@
 Angular WebSql Service
 ====================
-Helps you generate websql simple queries and run them without writing any sql code.
+Helps you generate websql simple queries and run them without writing any sql code. This version additionally also supports
+the [brodysoft/Cordova-SQLitePlugin](https://github.com/brodysoft/Cordova-SQLitePlugin). The code will auto-detect which
+`openDatabase()` call to use.
 
 Setup
 ---------------------
 1. `bower install angular-websql`
 2. Include the `angular-websql.min.js` and angular itself.
 3. Add `angular-websql` as a module dependency to your app.
+
+TODOS
+---------------------
+- merge `limitedOrderedSelect` and `orderedSelect` into `select` statement
 
 Usage
 ---------------------
@@ -191,3 +197,10 @@ SELECT * FROM user
 Operators
 ---------------------
 Your can use common operators like `=`, `>=`, `<=` and `LIKE`. You can use also `NULL` and `NOT NULL` as condition values.
+
+Changelog
+---------------------
+###0.0.2
+- added CREATE [UNIQUE] INDEX
+- added `orderedSelect()` and `limitedOrderedSelect()`
+- added Cordova SQLiteplugin support
