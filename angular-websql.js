@@ -55,7 +55,7 @@ angular.module("angular-websql", []).factory("$webSql", [
                     }
                   }
                 }, function (errorResp) {
-                  console.error(JSON.stringify(errorResp));
+                  console.error(errorResp);
 
                   if (callback) {
                     callback([]);
