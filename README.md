@@ -202,6 +202,7 @@ Changelog
 ---------------------
 ###0.0.3
 - fixed issue with "IN( ... )" using single quotes
+
 ###0.0.2
 - added CREATE [UNIQUE] INDEX
 - added `orderedSelect()` and `limitedOrderedSelect()`
