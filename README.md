@@ -200,6 +200,9 @@ Your can use common operators like `=`, `>=`, `<=` and `LIKE`. You can use also 
 
 Changelog
 ---------------------
+###0.0.4
+- reverted stringify of console errors
+
 ###0.0.3
 - fixed issue with "IN( ... )" using single quotes
 
