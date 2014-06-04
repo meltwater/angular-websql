@@ -275,7 +275,7 @@ angular.module("angular-websql", []).factory("$webSql", [
                     ? (typeof conditions[entry]["union"] === "undefined")
                     ? (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
                     ? "`" + entry + "` " + conditions[entry]["value"]
-                    : "`" + entry + "` " + conditions[entry]["operator"] + (conditions[entry]["operator"] == 'IN' ? " " + conditions[entry]["value"] : " '" + conditions[entry]["value"] + "'")
+                    : "`" + entry + "` " + conditions[entry]["operator"] + (conditions[entry]["operator"] == 'IN' ? " " + conditions[entry]["value"] : " " + conditions[entry]["value"] + "")
                     : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
                     ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " "
                     : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " "
