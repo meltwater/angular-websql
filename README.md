@@ -200,6 +200,9 @@ Your can use common operators like `=`, `>=`, `<=` and `LIKE`. You can use also 
 
 Changelog
 ---------------------
+###0.0.5
+- minor change: added $log for error logging
+
 ###0.0.4
 - reverted stringify of console errors
 
