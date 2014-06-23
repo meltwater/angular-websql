@@ -200,6 +200,9 @@ Your can use common operators like `=`, `>=`, `<=` and `LIKE`. You can use also 
 
 Changelog
 ---------------------
+###0.0.6
+- adapt update() logic to query + bindings logic
+
 ###0.0.5
 - minor change: added $log for error logging
 
