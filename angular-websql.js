@@ -3,8 +3,9 @@
  * Helps you generate and run websql queries with angular services.
  * © MIT License
  */
-"use strict";
 angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log) {
+  'use strict';
+
   return {
     /**
      * Open database
@@ -17,13 +18,13 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
      * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, orderedSelect: orderedSelect, limitedOrderedSelect: limitedOrderedSelect, selectAll: selectAll, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
      */
     openDatabase: function (dbName, version, desc, size) {
-      if (typeof(openDatabase) == "undefined") {
+      if ((typeof openDatabase) === "undefined") {
         throw "Browser does not support web sql";
       }
 
       try {
         /* Use either the window.sqlitePlugin (Cordova SQLite plugin) or WebSQL */
-        var db = (window && 'sqlitePlugin' in window)
+        var db = (window && window.hasOwnProperty('sqlitePlugin'))
           ? window.sqlitePlugin.openDatabase({'name': dbName})
           : window.openDatabase(dbName, version, desc, size);
 
@@ -38,14 +39,14 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           executeQuery: function (query, bindings, callback) {
-//              console.log('[QUERY] ' + JSON.stringify(query) + ' -- BINDINGS: ' + JSON.stringify(bindings));
+//            console.log('[QUERY] ' + JSON.stringify(query) + ' -- BINDINGS: ' + JSON.stringify(bindings));
 
             db.transaction(function (tx) {
               tx.executeSql(query, bindings, function (tx, results) {
                 if (callback) {
-                  var cleanedResults = [];
+                  var i, cleanedResults = [];
                   if (results && 'rows' in results && results.rows.length) {
-                    for (var i = 0; i < results.rows.length; i++) {
+                    for (i = 0; i < results.rows.length; i++) {
                       cleanedResults.push(results.rows.item(i));
                       callback(cleanedResults);
                     }
@@ -54,7 +55,6 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
                   }
                 }
               }, function (errorResp) {
-                $log.error('Received error in angular-websql.');
                 $log.error(errorResp);
 
                 if (callback) {
@@ -113,7 +113,6 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
             return this;
           },
 
-          // TODO: Implement parameter bindings!!! (the frontend dev: "the question mark stuff")
           /**
            * UPDATE <table> SET <value> WHERE <cond>;
            *
@@ -124,19 +123,21 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           update: function (tableName, valuesToUpdate, condition, callback) {
-            var query = "UPDATE `{tableName}` SET {update} WHERE {where}; ";
-            var updateValue = "";
-            for (var entry in valuesToUpdate) {
-              if (valuesToUpdate.hasOwnProperty(entry)) {
-                updateValue += "`" + entry + "`='" + valuesToUpdate[entry] + "'";
-              }
-            }
-            var whereCondition = this.whereClause(condition);
+            var
+              query = "UPDATE `{tableName}` SET {update} WHERE {where}; ",
+              updatePairs = Object.keys(valuesToUpdate).map(function (key) {
+                return key + ' = ?';
+              }).join(','),
+              bindings = Object.keys(valuesToUpdate).map(function (key) {
+                return valuesToUpdate[key];
+              }),
+              whereCondition = this.whereClause(condition);
+
             this.executeQuery(this.replace(query, {
               "{tableName}": tableName,
-              "{update}": updateValue,
+              "{update}": updatePairs,
               "{where}": whereCondition
-            }), [], callback);
+            }), bindings, callback);
             return this;
           },
 
@@ -298,7 +299,7 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
           replace: function (templateString, valuesToReplace) {
             for (var entry in valuesToReplace) {
               if (valuesToReplace.hasOwnProperty(entry)) {
-                templateString = templateString.replace(new RegExp(entry, "ig"), valuesToReplace[entry])
+                templateString = templateString.replace(new RegExp(entry, "ig"), valuesToReplace[entry]);
               }
             }
             return templateString;
@@ -322,24 +323,24 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
                 columns += "`" + field + "` ";
                 for (var k in fields[field]) {
                   if (fields[field].hasOwnProperty(k)) {
-                    l = l.replace(new RegExp("{" + k + "}", "ig"), fields[field][k])
+                    l = l.replace(new RegExp("{" + k + "}", "ig"), fields[field][k]);
                   }
                 }
                 columns += l;
                 if (typeof fields[field]["default"] !== "undefined") {
-                  columns += " DEFAULT " + fields[field]["default"]
+                  columns += " DEFAULT " + fields[field]["default"];
                 }
                 if (typeof fields[field]["primary"] !== "undefined") {
-                  columns += " PRIMARY KEY"
+                  columns += " PRIMARY KEY";
                 }
                 if (typeof fields[field]["auto_increment"] !== "undefined") {
-                  columns += " AUTOINCREMENT"
+                  columns += " AUTOINCREMENT";
                 }
                 if (Object.keys(fields)[Object.keys(fields).length - 1] != field) {
-                  columns += ","
+                  columns += ",";
                 }
                 if (typeof fields[field]["primary"] !== "undefined" && fields[field]["primary"]) {
-                  c.push(field)
+                  c.push(field);
                 }
               }
             }
@@ -349,7 +350,7 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
             };
             for (var entry in valuesToReplace) {
               if (valuesToReplace.hasOwnProperty(entry)) {
-                query = query.replace(new RegExp("{" + entry + "}", "ig"), valuesToReplace[entry])
+                query = query.replace(new RegExp("{" + entry + "}", "ig"), valuesToReplace[entry]);
               }
             }
             this.executeQuery(query, [], callback);
@@ -372,6 +373,5 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
         console.error(err);
       }
     }
-  }
-}
-]);
+  };
+}]);
