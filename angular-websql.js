@@ -27,7 +27,6 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
         throw "Browser does not support web sql";
       }
 
-
       try {
         /* Use either the window.sqlitePlugin (Cordova SQLite plugin) or WebSQL */
         db = (window && window.hasOwnProperty('sqlitePlugin'))
@@ -54,7 +53,7 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
              * @param tx
              * @param results
              */
-              //noinspection JSUnusedLocalSymbols
+              // TODO: Should we not be using tx?
             function processSuccess(tx, results) {
               var i, cleanedResults = [];
 
@@ -182,8 +181,10 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           del: function (tableName, condition, callback) {
-            var query = "DELETE FROM `{tableName}` WHERE {where}; ";
-            var whereCondition = this.whereClause(condition);
+            var
+              query = "DELETE FROM `{tableName}` WHERE {where}; ",
+              whereCondition = this.whereClause(condition);
+
             this.executeQuery(this.replace(query, {
               "{tableName}": tableName,
               "{where}": whereCondition
@@ -200,8 +201,10 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           select: function (tableName, condition, callback) {
-            var query = "SELECT * FROM `{tableName}` WHERE {where}; ";
-            var whereCondition = this.whereClause(condition);
+            var
+              query = "SELECT * FROM `{tableName}` WHERE {where}; ",
+              whereCondition = this.whereClause(condition);
+
             this.executeQuery(this.replace(query, {
               "{tableName}": tableName,
               "{where}": whereCondition
@@ -220,8 +223,10 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           orderedSelect: function (tableName, condition, orderBy, ascending, callback) {
-            var query = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder}; ";
-            var whereCondition = this.whereClause(condition);
+            var
+              query = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder}; ",
+              whereCondition = this.whereClause(condition);
+
             this.executeQuery(this.replace(query, {
               "{tableName}": tableName,
               "{where}": whereCondition,
@@ -243,8 +248,10 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           limitedOrderedSelect: function (tableName, condition, orderBy, ascending, limit, callback) {
-            var query = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder} LIMIT {limit}; ";
-            var whereCondition = this.whereClause(condition);
+            var
+              query = "SELECT * FROM `{tableName}` WHERE {where} ORDER BY {orderBy} {sortOrder} LIMIT {limit}; ",
+              whereCondition = this.whereClause(condition);
+
             this.executeQuery(this.replace(query, {
               "{tableName}": tableName,
               "{where}": whereCondition,
@@ -300,22 +307,33 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {string}
            */
           whereClause: function (conditions) {
-            var compiledWhereClause = "";
-            for (var entry in conditions) {
+            var
+              entry,
+              compiledWhereClause = "";
+
+            for (entry in conditions) {
               if (conditions.hasOwnProperty(entry)) {
-                // TODO: Clean up this MONSTER!!!!!!!
-                compiledWhereClause += (typeof conditions[entry] === "object")
-                  ? (typeof conditions[entry]["union"] === "undefined")
-                  ? (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
-                  ? "`" + entry + "` " + conditions[entry]["value"]
-                  : "`" + entry + "` " + conditions[entry]["operator"] + (conditions[entry]["operator"] == 'IN' ? " " + conditions[entry]["value"] : " " + conditions[entry]["value"] + "")
-                  : (typeof conditions[entry]["value"] === "string" && conditions[entry]["value"].match(/NULL/ig))
-                  ? "`" + entry + "` " + conditions[entry]["value"] + " " + conditions[entry]["union"] + " "
-                  : "`" + entry + "` " + conditions[entry]["operator"] + " '" + conditions[entry]["value"] + "' " + conditions[entry]["union"] + " "
-                  : (typeof conditions[entry] === "string" && conditions[entry].match(/NULL/ig))
-                  ? "`" + entry + "` " + conditions[entry]
-                  : "`" + entry + "`='" + conditions[entry] + "'"
-                ;
+                if (typeof conditions[entry] === "object") {
+                  if (conditions[entry].union === undefined) {
+                    if (typeof conditions[entry].value === "string" && conditions[entry].value.match(/NULL/ig)) {
+                      compiledWhereClause += "`" + entry + "` " + conditions[entry].value;
+                    } else {
+                      compiledWhereClause += "`" + entry + "` " + conditions[entry].operator + " " + conditions[entry].value;
+                    }
+                  } else {
+                    if (typeof conditions[entry].value === "string" && conditions[entry].value.match(/NULL/ig)) {
+                      compiledWhereClause += "`" + entry + "` " + conditions[entry].value + " " + conditions[entry].union + " ";
+                    } else {
+                      compiledWhereClause += "`" + entry + "` " + conditions[entry].operator + " '" + conditions[entry].value + "' " + conditions[entry].union + " ";
+                    }
+                  }
+                } else {
+                  if (typeof conditions[entry] === "string" && conditions[entry].match(/NULL/ig)) {
+                    compiledWhereClause += "`" + entry + "` " + conditions[entry];
+                  } else {
+                    compiledWhereClause += "`" + entry + "`='" + conditions[entry] + "'";
+                  }
+                }
               }
             }
             return compiledWhereClause;
@@ -329,7 +347,9 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           replace: function (templateString, valuesToReplace) {
-            for (var entry in valuesToReplace) {
+            var entry;
+
+            for (entry in valuesToReplace) {
               if (valuesToReplace.hasOwnProperty(entry)) {
                 templateString = templateString.replace(new RegExp(entry, "ig"), valuesToReplace[entry]);
               }
@@ -346,41 +366,50 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           createTable: function (tableName, fields, callback) {
-            var query = "CREATE TABLE IF NOT EXISTS `{tableName}` ({fields}); ";
-            var c = [];
-            var columns = "";
-            for (var field in fields) {
+            var
+              l,
+              k,
+              field,
+              entry,
+              query = "CREATE TABLE IF NOT EXISTS `{tableName}` ({fields}); ",
+              c = [],
+              valuesToReplace,
+              columns = "";
+
+            for (field in fields) {
               if (fields.hasOwnProperty(field)) {
-                var l = "{type} {null}";
+                l = "{type} {null}";
                 columns += "`" + field + "` ";
-                for (var k in fields[field]) {
+                for (k in fields[field]) {
                   if (fields[field].hasOwnProperty(k)) {
                     l = l.replace(new RegExp("{" + k + "}", "ig"), fields[field][k]);
                   }
                 }
                 columns += l;
-                if (typeof fields[field]["default"] !== "undefined") {
-                  columns += " DEFAULT " + fields[field]["default"];
+                if (fields[field].default !== undefined) {
+                  columns += " DEFAULT " + fields[field].default;
                 }
-                if (typeof fields[field]["primary"] !== "undefined") {
+                if (fields[field].primary !== undefined) {
                   columns += " PRIMARY KEY";
                 }
-                if (typeof fields[field]["auto_increment"] !== "undefined") {
+                if (fields[field].auto_increment !== undefined) {
                   columns += " AUTOINCREMENT";
                 }
-                if (Object.keys(fields)[Object.keys(fields).length - 1] != field) {
+                if (Object.keys(fields)[Object.keys(fields).length - 1] !== field) {
                   columns += ",";
                 }
-                if (typeof fields[field]["primary"] !== "undefined" && fields[field]["primary"]) {
+                if (fields[field].primary !== undefined && fields[field].primary) {
                   c.push(field);
                 }
               }
             }
-            var valuesToReplace = {
+
+            valuesToReplace = {
               tableName: tableName,
               fields: columns
             };
-            for (var entry in valuesToReplace) {
+
+            for (entry in valuesToReplace) {
               if (valuesToReplace.hasOwnProperty(entry)) {
                 query = query.replace(new RegExp("{" + entry + "}", "ig"), valuesToReplace[entry]);
               }
