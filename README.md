@@ -200,6 +200,9 @@ Your can use common operators like `=`, `>=`, `<=` and `LIKE`. You can use also 
 
 Changelog
 ---------------------
+###0.0.8
+- clean up if-clause monster
+
 ###0.0.7
 - process SQLResult for successful inserts with a provided insertId
 
