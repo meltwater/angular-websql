@@ -49,7 +49,12 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
               $log.debug('[QUERY] ' + JSON.stringify(query) + ' -- BINDINGS: ' + JSON.stringify(bindings));
             }
 
-            //noinspection JSUnusedLocalSymbols
+            /**
+             * Process the transaction results in a success case
+             * @param tx
+             * @param results
+             */
+              //noinspection JSUnusedLocalSymbols
             function processSuccess(tx, results) {
               var i, cleanedResults = [];
 
@@ -72,6 +77,10 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
               callback(cleanedResults);
             }
 
+            /**
+             * Process the transaction result in an error case
+             * @param errorResp
+             */
             function processError(errorResp) {
               if (sqlDebug) {
                 $log.error(errorResp);
