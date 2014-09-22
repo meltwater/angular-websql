@@ -15,16 +15,22 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
      * @param version
      * @param desc
      * @param size
+     * @param debugFlag
      * @returns {{executeQuery: executeQuery, index: index, insert: insert, update: update, del: del, select: select, orderedSelect: orderedSelect, limitedOrderedSelect: limitedOrderedSelect, selectAll: selectAll, whereClause: whereClause, replace: replace, createTable: createTable, dropTable: dropTable}}
      */
-    openDatabase: function (dbName, version, desc, size) {
-      if ((typeof openDatabase) === "undefined") {
+    openDatabase: function (dbName, version, desc, size, debugFlag) {
+      var
+        db,
+        sqlDebug = debugFlag || false;
+
+      if (openDatabase === undefined) {
         throw "Browser does not support web sql";
       }
 
+
       try {
         /* Use either the window.sqlitePlugin (Cordova SQLite plugin) or WebSQL */
-        var db = (window && window.hasOwnProperty('sqlitePlugin'))
+        db = (window && window.hasOwnProperty('sqlitePlugin'))
           ? window.sqlitePlugin.openDatabase({'name': dbName})
           : window.openDatabase(dbName, version, desc, size);
 
@@ -39,28 +45,45 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            * @returns {*}
            */
           executeQuery: function (query, bindings, callback) {
-//            console.log('[QUERY] ' + JSON.stringify(query) + ' -- BINDINGS: ' + JSON.stringify(bindings));
+            if (sqlDebug === true) {
+              $log.debug('[QUERY] ' + JSON.stringify(query) + ' -- BINDINGS: ' + JSON.stringify(bindings));
+            }
+
+            //noinspection JSUnusedLocalSymbols
+            function processSuccess(tx, results) {
+              var i, cleanedResults = [];
+
+              if (callback === undefined || callback === null) {
+                return;
+              }
+
+              if (results && results.hasOwnProperty('rows') && results.rows.hasOwnProperty('length') && results.rows.length > 0) {
+                for (i = 0; i < results.rows.length; i++) {
+                  cleanedResults.push(results.rows.item(i));
+                }
+              } else if (results && results.hasOwnProperty('rowsAffected') && results.rowsAffected > 0 && results.hasOwnProperty('insertId')) {
+                try {
+                  cleanedResults.push({insertId: results.insertId});
+                } catch (err) {
+                  $log.error(err);
+                }
+              }
+
+              callback(cleanedResults);
+            }
+
+            function processError(errorResp) {
+              if (sqlDebug) {
+                $log.error(errorResp);
+              }
+
+              if (callback) {
+                callback([]);
+              }
+            }
 
             db.transaction(function (tx) {
-              tx.executeSql(query, bindings, function (tx, results) {
-                if (callback) {
-                  var i, cleanedResults = [];
-                  if (results && 'rows' in results && results.rows.length) {
-                    for (i = 0; i < results.rows.length; i++) {
-                      cleanedResults.push(results.rows.item(i));
-                      callback(cleanedResults);
-                    }
-                  } else {
-                    callback(cleanedResults);
-                  }
-                }
-              }, function (errorResp) {
-                $log.error(errorResp);
-
-                if (callback) {
-                  callback([]);
-                }
-              });
+              tx.executeSql(query, bindings, processSuccess, processError);
             });
             return this;
           },
