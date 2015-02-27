@@ -53,7 +53,7 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
              * @param tx
              * @param results
              */
-              // TODO: Should we not be using tx?
+            // TODO: Should we not be using tx?
             function processSuccess(tx, results) {
               var i, cleanedResults = [];
 
@@ -127,8 +127,10 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            */
           insert: function (tableName, objToInsert, callback) {
             var
-              query = "INSERT INTO `{tableName}` ({columns}) VALUES({values}); ",
-              columns = Object.keys(objToInsert).join(','),
+              query = "INSERT INTO {tableName} ({columns}) VALUES({values}); ",
+              columns = Object.keys(objToInsert).map(function (columnKey) {
+                return '`' + columnKey + '`';
+              }).join(','),
               values = Object.keys(objToInsert).map(function () {
                 return '?';
               }).join(','),
@@ -155,7 +157,7 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            */
           update: function (tableName, valuesToUpdate, condition, callback) {
             var
-              query = "UPDATE `{tableName}` SET {update} WHERE {where}; ",
+              query = "UPDATE {tableName} SET `{update}` WHERE {where}; ",
               updatePairs = Object.keys(valuesToUpdate).map(function (key) {
                 return key + ' = ?';
               }).join(','),
