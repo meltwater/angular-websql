@@ -157,9 +157,9 @@ angular.module("angular-websql", []).factory("$webSql", ['$log', function ($log)
            */
           update: function (tableName, valuesToUpdate, condition, callback) {
             var
-              query = "UPDATE {tableName} SET `{update}` WHERE {where}; ",
+              query = "UPDATE {tableName} SET {update} WHERE {where}; ",
               updatePairs = Object.keys(valuesToUpdate).map(function (key) {
-                return key + ' = ?';
+                return '`' + key + '`' + ' = ?';
               }).join(','),
               bindings = Object.keys(valuesToUpdate).map(function (key) {
                 return valuesToUpdate[key];
